@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import utils from "../classes/utils";
 import chess from "../classes/chess";
+import Piece from "./Piece";
 
 const Game = () => {
     const [game, setGame] = useState(new chess());
@@ -7,9 +9,16 @@ const Game = () => {
     const [neighbors, setNeighbors] = useState<Array<number[]> | null>(null);
 
     useEffect(() => {
-        console.log(game);
+        console.log(game.checkWinner());
+        console.log(game.evaluate());
         resetSelections();
     }, [game]);
+
+    useEffect(() => {
+        if (selectedPiece === null) {
+            setNeighbors(null);
+        }
+    }, [selectedPiece]);
 
     // Could just run these everytime game updates?
     const resetSelections = () => {
@@ -29,80 +38,78 @@ const Game = () => {
         });
     };
 
-    const movePiece = (pos: number[]) => {
-        console.log(`Move to: ${pos}`);
+    const movePiece = (pos: number[], dest: number[]) => {
+        // This function will do the moving because if you modify the object it won't trigger a rerender
+        // Can also give the class this same function, for non UI
+        // TODO: Test the current implementation of getting valid moves
+        // TODO: Complete movePiece for rerendeer, and on chess class (for the minimax function)
+        // TODO: Complete a evaluation function that returns score of black pieces - white pieces or vice versa
+        // TODO: Complete a checkWinner function that checks if black has no king then white wins and vice versa
+
+        // FIRST make get valid moves return double array with pos and dest
+        const [posRow, posCol] = pos;
+        const [destRow, destCol] = dest;
+
+        const copyObject = Object.setPrototypeOf({ ...game }, chess.prototype);
+        copyObject.board[destRow][destCol].team =
+            copyObject.board[posRow][posCol].team;
+        copyObject.board[destRow][destCol].piece =
+            copyObject.board[posRow][posCol].piece;
+        copyObject.board[posRow][posCol].team = "";
+        copyObject.board[posRow][posCol].piece = "";
+
+        if (
+            copyObject.board[destRow][destCol].team === "WHITE" &&
+            copyObject.board[destRow][destCol].piece === "PAWN" &&
+            destRow === 0
+        ) {
+            copyObject.board[destRow][destCol].piece = "QUEEN";
+        } else if (
+            copyObject.board[destRow][destCol].team === "BLACK" &&
+            copyObject.board[destRow][destCol].piece === "PAWN" &&
+            destRow === 7
+        ) {
+            copyObject.board[destRow][destCol].piece = "QUEEN";
+        }
+
+        setGame(copyObject);
+
+        updateTurn();
     };
 
-    const handleClick = (pos: number[]) => {
-        console.log(game);
-        const [row, col] = pos;
-        setSelectedPiece([row, col]);
-        setNeighbors(game.getNeighbors([row, col]));
-        console.log(row, col);
-        console.log(game.getNeighbors([row, col]));
+    const getPossibleMoves = (pos: number[]) => {
+        // If selectedPiece already equals the pos, then just unselected the piece
+        if (utils.compareArrays(selectedPiece, pos)) {
+            setSelectedPiece(null);
+        } else {
+            setSelectedPiece(pos);
+            setNeighbors(game.getNeighbors(pos));
+        }
     };
-
-    function compareArrays(arr1: number[], arr2: number[]): boolean {
-        if (arr1.length !== arr2.length) {
-            return false;
-        }
-        for (let i = 0; i < arr1.length; i++) {
-            if (arr1[i] !== arr2[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
 
     return (
         <>
-            <div className="grid grid-rows-8 grid-cols-8 max-w-screen-lg">
-                {game.board.map((x, row) =>
-                    x.map((y, col) => {
-                        const selectedPieceStyle = {
-                            backgroundColor: "gray",
-                        };
-                        const neighborPieceStyle = {
-                            backgroundColor: "green",
-                            cursor: "pointer",
-                        };
-                        const isNeighbor = neighbors?.some((arr) =>
-                            compareArrays(arr, [row, col])
-                        );
-                        const isSelectedPiece =
-                            selectedPiece &&
-                            compareArrays(selectedPiece, [row, col]);
-
-                        const mergedStyle = Object.assign(
-                            {},
-                            isSelectedPiece && selectedPieceStyle,
-                            isNeighbor && neighborPieceStyle
-                        );
-
+            <div className="grid grid-rows-8 grid-cols-8 max-w-screen-lg absolute left-0 right-0 ml-auto mr-auto">
+                {game.board.map((array, row) =>
+                    array.map((element, col) => {
                         return (
-                            <div
-                                key={`${row},${col}`}
-                                className="flex relative border border-black items-center justify-center w-full pb-[100%]"
-                                style={mergedStyle}
-                                onClick={
-                                    // TODO: Make this look better
-                                    y !== null && !isNeighbor
-                                        ? () => handleClick([row, col])
-                                        : isNeighbor
-                                        ? () => movePiece([row, col])
-                                        : undefined
-                                }
-                            >
-                                <div className="absolute top-0 bottom-0 left-0 right-0">
-                                    {y}
-                                </div>
-                            </div>
+                            <Piece
+                                key={`${row}, ${col}`}
+                                element={element}
+                                selectedPiece={selectedPiece}
+                                neighbors={neighbors}
+                                movePiece={movePiece}
+                                getPossibleMoves={getPossibleMoves}
+                                game={game}
+                            />
                         );
                     })
                 )}
             </div>
-            <h1>{`Current turn: ${game.turn}`}</h1>
-            <button onClick={updateTurn}>UPDATE TURN</button>
+            <div>
+                <h1>{`Current turn: ${game.turn}`}</h1>
+                <button onClick={updateTurn}>UPDATE TURN</button>
+            </div>
         </>
     );
 };
