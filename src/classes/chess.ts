@@ -158,6 +158,8 @@ class chess {
                       [1, -1],
                   ];
 
+        const pawnTwoForward = this.turn === "WHITE" ? [-2, 0] : [2, 0];
+
         const goesOffBoard = (pos: number[]) => {
             for (let i = 0; i < pos.length; i++) {
                 if (pos[i] < 0 || pos[i] > this.BOARDSIZE - 1) {
@@ -193,6 +195,30 @@ class chess {
                         this.board[neighborRow][neighborCol].team !==
                             this.turn &&
                         this.board[neighborRow][neighborCol].piece !== ""
+                    ) {
+                        neighbors.push(neighbor);
+                    }
+                }
+
+                if (objectPiece.team === "WHITE" && startRow === 6) {
+                    const [rowMove, colMove] = pawnTwoForward;
+                    const neighbor = [startRow + rowMove, startCol + colMove];
+                    const [neighborRow, neighborCol] = neighbor;
+
+                    if (
+                        !goesOffBoard(neighbor) &&
+                        this.board[neighborRow][neighborCol].team !== this.turn
+                    ) {
+                        neighbors.push(neighbor);
+                    }
+                } else if (objectPiece.team === "BLACK" && startRow === 1) {
+                    const [rowMove, colMove] = pawnTwoForward;
+                    const neighbor = [startRow + rowMove, startCol + colMove];
+                    const [neighborRow, neighborCol] = neighbor;
+
+                    if (
+                        !goesOffBoard(neighbor) &&
+                        this.board[neighborRow][neighborCol].team !== this.turn
                     ) {
                         neighbors.push(neighbor);
                     }
@@ -331,57 +357,77 @@ class chess {
         }
     }
     // depth = 4 seems to be fast, and anything higher takes like 10 years
-    generateMove(game = this, depth = 3, alpha, beta, maximizingPlayer, maximizingColor) {
+    generateMove(
+        game = this,
+        depth = 3,
+        alpha,
+        beta,
+        maximizingPlayer,
+        maximizingColor
+    ) {
         // Depth will be subtracted from every time this function is ran, (not sure is this.evaluate will evaluate correctly for the board that is inputted)
-            if (depth === 0 || game.checkWinner() !== null) {
-                return game.evaluate(game, maximizingColor);
-            }
-
-            const moves = game.getAllValidMoves();
-            let bestMove = moves[Math.floor(Math.random() * moves.length)];
-
-            if (maximizingPlayer) {
-                let maxEval = -Infinity;
-                for (let i = 0; i < moves.length; i++) {
-                    const move = moves[i];
-                    const copyGame = Object.setPrototypeOf(
-                        JSON.parse(JSON.stringify(game)),
-                        chess.prototype
-                    );
-                    copyGame.placeMove(move[0], move[1]);
-                    copyGame.turn = "WHITE"
-
-                    const currentEval = game.generateMove(copyGame, depth - 1, alpha, beta, false, maximizingColor)
-                    if (currentEval[1] > maxEval) {
-                        maxEval = currentEval[1]
-                        bestMove = move
-                    }
-                    alpha = Math.max(alpha, currentEval[1]);
-                    if (beta <= alpha) break;
-                }
-                return [bestMove, maxEval]
-            } else {
-                let minEval = Infinity;
-                for (let i = 0; i < moves.length; i++) {
-                    const move = moves[i];
-                    const copyGame = Object.setPrototypeOf(
-                        JSON.parse(JSON.stringify(game)),
-                        chess.prototype
-                    );
-                    copyGame.placeMove(move[0], move[1]);
-                    copyGame.turn = "BLACK"
-                    const currentEval = game.generateMove(copyGame, depth - 1, alpha, beta, true, maximizingColor)
-                    if (currentEval[1] < minEval) {
-                        minEval = currentEval[1]
-                        bestMove = move
-                    }
-                    beta = Math.min(beta, currentEval[1]);
-                    if (beta <= alpha) break;
-                }
-                return [bestMove, minEval]
-            }
+        if (depth === 0 || game.checkWinner() !== null) {
+            return game.evaluate(game, maximizingColor);
         }
-    
+
+        const moves = game.getAllValidMoves();
+        let bestMove = moves[Math.floor(Math.random() * moves.length)];
+
+        if (maximizingPlayer) {
+            let maxEval = -Infinity;
+            for (let i = 0; i < moves.length; i++) {
+                const move = moves[i];
+                const copyGame = Object.setPrototypeOf(
+                    JSON.parse(JSON.stringify(game)),
+                    chess.prototype
+                );
+                copyGame.placeMove(move[0], move[1]);
+                copyGame.turn = "WHITE";
+
+                const currentEval = game.generateMove(
+                    copyGame,
+                    depth - 1,
+                    alpha,
+                    beta,
+                    false,
+                    maximizingColor
+                );
+                if (currentEval[1] > maxEval) {
+                    maxEval = currentEval[1];
+                    bestMove = move;
+                }
+                alpha = Math.max(alpha, currentEval[1]);
+                if (beta <= alpha) break;
+            }
+            return [bestMove, maxEval];
+        } else {
+            let minEval = Infinity;
+            for (let i = 0; i < moves.length; i++) {
+                const move = moves[i];
+                const copyGame = Object.setPrototypeOf(
+                    JSON.parse(JSON.stringify(game)),
+                    chess.prototype
+                );
+                copyGame.placeMove(move[0], move[1]);
+                copyGame.turn = "BLACK";
+                const currentEval = game.generateMove(
+                    copyGame,
+                    depth - 1,
+                    alpha,
+                    beta,
+                    true,
+                    maximizingColor
+                );
+                if (currentEval[1] < minEval) {
+                    minEval = currentEval[1];
+                    bestMove = move;
+                }
+                beta = Math.min(beta, currentEval[1]);
+                if (beta <= alpha) break;
+            }
+            return [bestMove, minEval];
+        }
+    }
 }
 
 export default chess;

@@ -7,11 +7,20 @@ const Game = () => {
     const [game, setGame] = useState(new chess());
     const [selectedPiece, setSelectedPiece] = useState<number[] | null>(null);
     const [neighbors, setNeighbors] = useState<Array<number[]> | null>(null);
+    const [isGameOver, setGameOver] = useState(false);
+    const [winner, setWinner] = useState<string | null>(null);
 
     let ranOnce = false;
 
     useEffect(() => {
         resetSelections();
+
+        const winner = game.checkWinner();
+
+        if (winner !== null) {
+            setGameOver(true);
+            setWinner(winner);
+        }
 
         if (game.turn === "BLACK" && ranOnce === false) {
             // After turn updates, run computerMove
@@ -38,6 +47,12 @@ const Game = () => {
             setNeighbors(null);
         }
     }, [selectedPiece]);
+
+    const handleReset = () => {
+        setGame(new chess());
+        setWinner(null);
+        setGameOver(false);
+    };
 
     // Could just run these everytime game updates?
     const resetSelections = () => {
@@ -117,10 +132,12 @@ const Game = () => {
                     })
                 )}
             </div>
-            <div>
-                <h1>{`Current turn: ${game.turn}`}</h1>
-                {/* <button onClick={updateTurn}>UPDATE TURN</button> */}
-            </div>
+            {isGameOver && (
+                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-200 rounded flex flex-col">
+                    <h1>{`Winner: ${winner}`}</h1>
+                    <button onClick={handleReset}>RESET</button>
+                </div>
+            )}
         </>
     );
 };
