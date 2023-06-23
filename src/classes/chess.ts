@@ -11,14 +11,12 @@ class chess {
 
     constructor() {
         // prettier-ignore
-        // TODO: Assign objects with labels like WHITE or BLACK to mark team pieces, and etc
-        // And give pawns a isFirstMove boolean to handle allowing 2 or 1 squares?
+        // give pawns a isFirstMove boolean to handle allowing 2 or 1 squares?
         this.board = this.generateBoard();
-        this.turn = "WHITE";
+        this.turn = "BLACK";
     }
 
     generateBoard() {
-        // 1D array, first 2 rows BLACK, last 2 rows WHITE
         // prettier-ignore
         const startBoard = [
             ["ROOK", "KNIGHT", "BISHOP", "QUEEN", "KING", "BISHOP", "KNIGHT", "ROOK",],
@@ -30,8 +28,7 @@ class chess {
             ["PAWN", "PAWN", "PAWN", "PAWN", "PAWN", "PAWN", "PAWN", "PAWN",],
             ["ROOK", "KNIGHT", "BISHOP", "QUEEN", "KING", "BISHOP", "KNIGHT", "ROOK",],
         ]
-        // TODO: if pawn add a firstMove boolean, and if for example its BLACK then if it's on the otherside of board give
-        // option to change itself
+
         const arr = [];
         for (let i = 0; i < startBoard.length; i++) {
             arr.push([]);
@@ -46,29 +43,53 @@ class chess {
             }
         }
 
-        // TEMPORARY
-        // arr[4][1].team = "WHITE";
-
         return arr;
     }
-    findValidMoves(pos: Array<number>) {
-        // This will return all the valid moves for a turn, so if white, return an array with
-        // 2 Values, starting position, move position.
-        // Might even be able to replace getNeighbors with this one
-        // Or just modify getNeighbors to return what this function will do
-        // And when rendering the moves just render the 2nd index (move position)
-        return;
+    getAllValidMoves() {
+        // Returns all possible moves for the current turn team
+        const allMoves = [];
+
+        if (this.turn === "WHITE") {
+            for (let i = 0; i < this.BOARDSIZE; i++) {
+                for (let j = 0; j < this.BOARDSIZE; j++) {
+                    if (this.board[i][j].team === "WHITE") {
+                        const moves = this.getNeighbors([i, j]);
+                        if (moves.length > 0) {
+                            moves.forEach((move) => {
+                                const [row, col] = move;
+                                allMoves.push([
+                                    [i, j],
+                                    [row, col],
+                                ]);
+                            });
+                        }
+                    }
+                }
+            }
+        } else if (this.turn === "BLACK") {
+            for (let i = 0; i < this.BOARDSIZE; i++) {
+                for (let j = 0; j < this.BOARDSIZE; j++) {
+                    if (this.board[i][j].team === "BLACK") {
+                        const moves = this.getNeighbors([i, j]);
+                        if (moves.length > 0) {
+                            moves.forEach((move) => {
+                                const [row, col] = move;
+                                allMoves.push([
+                                    [i, j],
+                                    [row, col],
+                                ]);
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        return allMoves;
     }
 
-    placeMove() {
-        return;
-    }
-
-    // Could make this function just return all possible moves for the current turn player
-    // Return an array with the starting pos and moving pos
-    // And for the selectedPiece just find that index and get it from the all possible moves
-    // LOOP through every index on the board, and if the piece team matches the current turn (do thing)
     getNeighbors(pos: Array<number>) {
+        // Returns all possible moves for a given piece position
         const PIECES = {
             KING: [
                 [1, 1],
@@ -252,7 +273,7 @@ class chess {
         return !containsWhite ? "BLACK" : !containsBlack ? "WHITE" : null;
     }
 
-    evaluate(maximizingColor) {
+    evaluate(game = this, maximizingColor) {
         const pieceScores = {
             PAWN: 10,
             KNIGHT: 30,
@@ -267,21 +288,100 @@ class chess {
 
         for (let i = 0; i < this.BOARDSIZE; i++) {
             for (let j = 0; j < this.BOARDSIZE; j++) {
-                if (this.board[i][j].team === "WHITE") {
-                    whiteScore += pieceScores[this.board[i][j].piece];
-                } else if (this.board[i][j].team === "BLACK") {
-                    blackScore += pieceScores[this.board[i][j].piece];
+                if (game.board[i][j].team === "WHITE") {
+                    whiteScore += pieceScores[game.board[i][j].piece];
+                } else if (game.board[i][j].team === "BLACK") {
+                    blackScore += pieceScores[game.board[i][j].piece];
                 }
             }
         }
 
-        // if (maximizingColor === "WHITE") {
-        //     return whiteScore - blackScore;
-        // } else {
-        //     return blackScore - whiteScore;
-        // }
-        return (`WHITE: ${whiteScore} BLACK: ${blackScore}`)
+        if (maximizingColor === "WHITE") {
+            return whiteScore - blackScore;
+        } else {
+            return blackScore - whiteScore;
+        }
     }
+
+    updateTurn() {
+        this.turn === "WHITE" ? "BLACK" : "WHITE";
+    }
+
+    placeMove(pos: number[], dest: number[]) {
+        const [posRow, posCol] = pos;
+        const [destRow, destCol] = dest;
+
+        this.board[destRow][destCol].team = this.board[posRow][posCol].team;
+        this.board[destRow][destCol].piece = this.board[posRow][posCol].piece;
+        this.board[posRow][posCol].team = "";
+        this.board[posRow][posCol].piece = "";
+
+        if (
+            this.board[destRow][destCol].team === "WHITE" &&
+            this.board[destRow][destCol].piece === "PAWN" &&
+            destRow === 0
+        ) {
+            this.board[destRow][destCol].piece = "QUEEN";
+        } else if (
+            this.board[destRow][destCol].team === "BLACK" &&
+            this.board[destRow][destCol].piece === "PAWN" &&
+            destRow === 7
+        ) {
+            this.board[destRow][destCol].piece = "QUEEN";
+        }
+    }
+    // depth = 4 seems to be fast, and anything higher takes like 10 years
+    generateMove(game = this, depth = 3, alpha, beta, maximizingPlayer, maximizingColor) {
+        // Depth will be subtracted from every time this function is ran, (not sure is this.evaluate will evaluate correctly for the board that is inputted)
+            if (depth === 0 || game.checkWinner() !== null) {
+                return game.evaluate(game, maximizingColor);
+            }
+
+            const moves = game.getAllValidMoves();
+            let bestMove = moves[Math.floor(Math.random() * moves.length)];
+
+            if (maximizingPlayer) {
+                let maxEval = -Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    const move = moves[i];
+                    const copyGame = Object.setPrototypeOf(
+                        JSON.parse(JSON.stringify(game)),
+                        chess.prototype
+                    );
+                    copyGame.placeMove(move[0], move[1]);
+                    copyGame.turn = "WHITE"
+
+                    const currentEval = game.generateMove(copyGame, depth - 1, alpha, beta, false, maximizingColor)
+                    if (currentEval[1] > maxEval) {
+                        maxEval = currentEval[1]
+                        bestMove = move
+                    }
+                    alpha = Math.max(alpha, currentEval[1]);
+                    if (beta <= alpha) break;
+                }
+                return [bestMove, maxEval]
+            } else {
+                let minEval = Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    const move = moves[i];
+                    const copyGame = Object.setPrototypeOf(
+                        JSON.parse(JSON.stringify(game)),
+                        chess.prototype
+                    );
+                    copyGame.placeMove(move[0], move[1]);
+                    copyGame.turn = "BLACK"
+                    const currentEval = game.generateMove(copyGame, depth - 1, alpha, beta, true, maximizingColor)
+                    if (currentEval[1] < minEval) {
+                        minEval = currentEval[1]
+                        bestMove = move
+                    }
+                    beta = Math.min(beta, currentEval[1]);
+                    if (beta <= alpha) break;
+                }
+                return [bestMove, minEval]
+            }
+        }
+    
 }
 
 export default chess;

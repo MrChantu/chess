@@ -8,10 +8,29 @@ const Game = () => {
     const [selectedPiece, setSelectedPiece] = useState<number[] | null>(null);
     const [neighbors, setNeighbors] = useState<Array<number[]> | null>(null);
 
+    let ranOnce = false;
+
     useEffect(() => {
-        console.log(game.checkWinner());
-        console.log(game.evaluate());
         resetSelections();
+
+        if (game.turn === "BLACK" && ranOnce === false) {
+            // After turn updates, run computerMove
+            // Will be ran after white, so color will be BLACK and maximizingPlayer true?
+            setTimeout(() => {
+                const computerMove = game.generateMove(
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    true,
+                    "BLACK"
+                );
+                // console.log(computerMove);
+                const [pos, move] = computerMove[0];
+                movePiece(pos, move);
+            }, 1000);
+            ranOnce = true;
+        }
     }, [game]);
 
     useEffect(() => {
@@ -39,14 +58,6 @@ const Game = () => {
     };
 
     const movePiece = (pos: number[], dest: number[]) => {
-        // This function will do the moving because if you modify the object it won't trigger a rerender
-        // Can also give the class this same function, for non UI
-        // TODO: Test the current implementation of getting valid moves
-        // TODO: Complete movePiece for rerendeer, and on chess class (for the minimax function)
-        // TODO: Complete a evaluation function that returns score of black pieces - white pieces or vice versa
-        // TODO: Complete a checkWinner function that checks if black has no king then white wins and vice versa
-
-        // FIRST make get valid moves return double array with pos and dest
         const [posRow, posCol] = pos;
         const [destRow, destCol] = dest;
 
@@ -108,7 +119,7 @@ const Game = () => {
             </div>
             <div>
                 <h1>{`Current turn: ${game.turn}`}</h1>
-                <button onClick={updateTurn}>UPDATE TURN</button>
+                {/* <button onClick={updateTurn}>UPDATE TURN</button> */}
             </div>
         </>
     );

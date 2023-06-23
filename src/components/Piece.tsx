@@ -34,8 +34,12 @@ const Piece = ({
     );
 
     const PIECEFILL = element.team === "WHITE" && "lightgray";
+
     const PIECEONCLICK =
-        game.turn === element.team && element.piece !== "" && !isNeighbor
+        game.turn === element.team &&
+        element.team === "WHITE" &&
+        element.piece !== "" &&
+        !isNeighbor
             ? () => getPossibleMoves(element.index)
             : undefined;
 
@@ -94,6 +98,7 @@ const Piece = ({
                     : undefined
             }
         >
+            {/* <div className="absolute top-5 left-5 text-red-500 z-10 ">{`${element.index[0]}, ${element.index[1]}`}</div> */}
             {/* movePiece not work with this line */}
             {/* And need logic for white and black colors (if white make it white somehow) */}
             {element.team !== "" && pieceSVGs[element.piece]}
